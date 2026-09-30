@@ -3,6 +3,13 @@
 Animeret Danmarkskort over m²-priser pr. kommune, 1992–i dag, til at undersøge
 "ripple-effekten": stiger priserne først i København og spreder sig derefter udad?
 
+**Live:** https://okker.github.io/M2prisKort/
+
+## Udgivelse
+
+Hvert push til `main` udgiver `web/` på GitHub Pages (`.github/workflows/pages.yml`). Nye kvartalstal:
+kør scripts under "Opdater data", commit `web/data/` og push. `data/raw/` er ikke i git; den genskabes af scripts.
+
 ## Kør lokalt
 
 ```bash
