@@ -58,6 +58,8 @@ glattede pris i browseren giver op til ~5 procentpoint forkert årlig ændring i
   indkomst for par i kommunen. Par frem for alle familier, fordi Københavns mange enlige ellers trækker indkomsten
   ned (2024: 418.000 mod 730.000 kr.). Årstal interpoleres til kvartaler; efter sidste indkomstår (2024) antages
   uændret realindkomst. Postnumre bruger kommunens indkomst, så inden for én kommune viser målet kun prisforskelle.
+  Knappen "Landsgennemsnit" dividerer i stedet med landsgennemsnittet for par: hvor mange gennemsnitlige danske
+  årsindkomster boligen koster (et priskort i en anden enhed).
 - **Liggetid:** dage fra udbud til salg (BM030/BM031), fra 2004, glattet over 4 kvartaler. "Alle boliger" er
   gennemsnittet over alle solgte boliger (typerne vægtet med antal salg).
 - **Glatning:** Glidende gennemsnit over 4 kvartaler (kræver 3 af 4). Den årlige ændring halter derfor ca. et halvt år.

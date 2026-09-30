@@ -27,6 +27,7 @@
   .seg button + button { border-left: 1px solid var(--line); }
   .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
   .seg button:disabled { opacity: .4; cursor: not-allowed; }
+  .seg[hidden] { display: none; }
   .timeline { display: flex; gap: 12px; align-items: center; margin: 4px 0 12px; }
   #play { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--ink); color: var(--bg);
           font-size: 16px; cursor: pointer; flex: none; }
@@ -84,6 +85,10 @@
       <button data-v="real" aria-pressed="true" id="real-label">Faste priser</button>
       <button data-v="nom">Løbende priser</button>
     </div>
+    <div class="seg" id="indkomst" role="group" aria-label="Indkomst i pris/indkomst" hidden>
+      <button data-v="lokal" aria-pressed="true" title="Disponibel indkomst for par i kommunen: hvor dyrt er det for dem, der bor der?">Indkomst i kommunen</button>
+      <button data-v="land" title="Disponibel indkomst for par i hele landet: hvor mange gennemsnitlige danske årsindkomster koster boligen?">Landsgennemsnit</button>
+    </div>
   </div>
 
   <div class="timeline">
@@ -115,7 +120,7 @@
     Glidende gennemsnit over 4 kvartaler. Faste priser er deflateret med forbrugerprisindekset fra
     <a href="https://www.statistikbanken.dk/PRIS01">Danmarks Statistik</a> (PRIS01 kædet med PRIS113).
     Tal før 2004 er opgjort med en anden metode.
-    Pris/indkomst: prisen for 100 m² delt med gennemsnitlig disponibel indkomst for par i kommunen
+    Pris/indkomst: prisen for 100 m² delt med gennemsnitlig disponibel indkomst for par i kommunen eller i hele landet
     (<a href="https://www.statistikbanken.dk/INDKF132">Danmarks Statistik, INDKF132</a>); postnumre bruger kommunens indkomst,
     og efter 2024 antages uændret realindkomst. Liggetid: <a href="https://rkr.statistikbank.dk/BM030">BM030</a>/<a href="https://rkr.statistikbank.dk/BM031">BM031</a>, fra 2004.
     Grå = ingen data eller for få handler (5 eller færre i kvartalet).
@@ -133,7 +138,7 @@ const YOY_LIMIT = 20;         // farveskalaen for årlig ændring går fra -20 %
 const BORNHOLM = 400;
 const HELE_LANDET = 0;
 
-const state = { view: "land", metric: "aarsindk", kategori: "samlet", priser: "real", t: 0, playing: null };
+const state = { view: "land", metric: "aarsindk", kategori: "samlet", priser: "real", indkomst: "lokal", t: 0, playing: null };
 d3.formatDefaultLocale({ decimal: ",", thousands: ".", grouping: [3], currency: ["", " kr."] });
 const fmtKr = d3.format(",.0f");
 const fmtPct = v => (v > 0 ? "+" : "") + v.toFixed(1).replace(".", ",") + " %";
@@ -171,7 +176,7 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
           pris, pris_real: prisReal,
           yoy: yoyOf(pris), yoy_real: yoyOf(prisReal),
           index: indexOf(pris), index_real: indexOf(prisReal),
-          aarsindk: aarsindkOf(pris, inc),
+          aarsindk: aarsindkOf(pris, inc), aarsindk_land: aarsindkOf(pris, income[HELE_LANDET]),
           liggetid: decode(a[kat]?.liggetid),
         };
       }
@@ -180,7 +185,8 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
       const pris = fromAnchor(index, ta, anker);
       a.samlet = {
         index, index_real: indexReal,
-        pris, pris_real: fromAnchor(indexReal, ta, ankerReal), aarsindk: aarsindkOf(pris, inc),
+        pris, pris_real: fromAnchor(indexReal, ta, ankerReal),
+        aarsindk: aarsindkOf(pris, inc), aarsindk_land: aarsindkOf(pris, income[HELE_LANDET]),
         yoy: yoyOf(index), yoy_real: yoyOf(indexReal),
         liggetid: decode(a.samlet?.liggetid),
       };
@@ -211,7 +217,10 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
   // Faste priser ligger under nøglerne pris_real, yoy_real og index_real (se prepare()).
   // Pris/indkomst og liggetid er de samme i faste og løbende priser og har ingen _real-variant.
   const PRICE_INVARIANT = new Set(["aarsindk", "liggetid"]);
-  const key = metric => state.priser === "real" && !PRICE_INVARIANT.has(metric) ? metric + "_real" : metric;
+  // Pris/indkomst med landsgennemsnittets indkomst ligger under aarsindk_land.
+  const key = metric =>
+    metric === "aarsindk" && state.indkomst === "land" ? "aarsindk_land"
+    : state.priser === "real" && !PRICE_INVARIANT.has(metric) ? metric + "_real" : metric;
   const series = (id, metric = state.metric, areas = V().areas) => areas[id]?.[state.kategori]?.[key(metric)] ?? [];
   const national = (metric = state.metric) => series(HELE_LANDET, metric, views.land.areas);
   const value = id => series(id)[state.t] ?? null;
@@ -356,7 +365,7 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
     d3.select("#key-sel").text(a.navn);
     d3.select("#sel-value").text(v == null ? "–" : METRICS[state.metric].fmt(v));
     d3.select("#sel-unit").text([
-      state.metric === "aarsindk" ? "Pris for 100 m² ÷ årlig disponibel indkomst for par i kommunen."
+      state.metric === "aarsindk" ? `Pris for 100 m² ÷ årlig disponibel indkomst for par ${state.indkomst === "land" ? "i hele landet" : "i kommunen"}.`
       : state.metric === "liggetid" ? "Dage fra udbud til salg, gennemsnit over 4 kvartaler."
       : state.priser === "real" ? `Faste priser, ${basis}-kroner.` : "Løbende priser.",
       state.kategori === "samlet" && ["pris", "aarsindk"].includes(state.metric) ? MIX_NOTE : "",
@@ -403,8 +412,11 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
   // Faste/løbende priser gør ingen forskel for pris/indkomst og liggetid.
   function syncControls() {
     d3.selectAll("#priser button").property("disabled", PRICE_INVARIANT.has(state.metric));
+    // Ved pris/indkomst er faste/løbende priser uden betydning; valget af indkomst vises i stedet.
+    d3.select("#priser").attr("hidden", state.metric === "aarsindk" ? "" : null);
+    d3.select("#indkomst").attr("hidden", state.metric === "aarsindk" ? null : "");
   }
-  seg("metric", "metric"); seg("kategori", "kategori"); seg("priser", "priser");
+  seg("metric", "metric"); seg("kategori", "kategori"); seg("priser", "priser"); seg("indkomst", "indkomst");
   d3.selectAll("#view button").on("click", function () { setView(this.dataset.v); });
   slider.on("input", function () { stop(); state.t = +this.value; render(0); });
 
