@@ -69,10 +69,10 @@
       <button data-v="hovedstad">Hovedstadsområdet</button>
     </div>
     <div class="seg" id="metric" role="group" aria-label="Visning">
-      <button data-v="yoy" aria-pressed="true">Årlig ændring</button>
+      <button data-v="yoy">Årlig ændring</button>
       <button data-v="pris">Pris pr. m²</button>
       <button data-v="index">Indeks (start = 100)</button>
-      <button data-v="aarsindk" title="Prisen for 100 m² målt i årlig disponibel indkomst for par i kommunen">Pris/indkomst</button>
+      <button data-v="aarsindk" aria-pressed="true" title="Prisen for 100 m² målt i årlig disponibel indkomst for par i kommunen">Pris/indkomst</button>
       <button data-v="liggetid" title="Dage fra udbud til salg (fra 2004)">Liggetid</button>
     </div>
     <div class="seg" id="kategori" role="group" aria-label="Boligtype">
@@ -133,7 +133,7 @@ const YOY_LIMIT = 20;         // farveskalaen for årlig ændring går fra -20 %
 const BORNHOLM = 400;
 const HELE_LANDET = 0;
 
-const state = { view: "land", metric: "yoy", kategori: "samlet", priser: "real", t: 0, playing: null };
+const state = { view: "land", metric: "aarsindk", kategori: "samlet", priser: "real", t: 0, playing: null };
 d3.formatDefaultLocale({ decimal: ",", thousands: ".", grouping: [3], currency: ["", " kr."] });
 const fmtKr = d3.format(",.0f");
 const fmtPct = v => (v > 0 ? "+" : "") + v.toFixed(1).replace(".", ",") + " %";
@@ -411,7 +411,7 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
   function stop() { clearInterval(state.playing); state.playing = null; d3.select("#play").text("▶").attr("aria-label", "Afspil"); }
   d3.select("#play").on("click", () => {
     if (state.playing) return stop();
-    if (state.t >= Q.length - 1) state.t = 0;
+    if (state.t >= Q.length - 1) state.t = FIRST_DATA;
     d3.select("#play").text("❚❚").attr("aria-label", "Pause");
     state.playing = setInterval(() => {
       if (state.t >= Q.length - 1) return stop();
@@ -424,7 +424,9 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
     if (e.key === "Escape" && state.view !== "land") setView("land");
   });
 
-  state.t = Q.indexOf("2004K1");
+  // Åbn i seneste kvartal (situationen i dag); play starter forfra fra første kvartal med data.
+  const FIRST_DATA = national("index").findIndex(v => v != null);
+  state.t = Q.length - 1;
   syncControls();
   setView("land");
 });
