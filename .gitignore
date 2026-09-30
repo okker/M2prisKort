@@ -1,0 +1,7 @@
+# Rå downloads kan hentes igen med scripts/ (kommunegrænserne alene fylder 119 MB)
+data/raw/
+
+# Lokal opsætning
+.claude/
+.DS_Store
+__pycache__/
