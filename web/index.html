@@ -26,8 +26,6 @@
   .seg button { border: 0; background: var(--panel); color: var(--muted); padding: 6px 10px; font: inherit; cursor: pointer; }
   .seg button + button { border-left: 1px solid var(--line); }
   .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-  .seg button:disabled { opacity: .4; cursor: not-allowed; }
-  .seg[hidden] { display: none; }
   .timeline { display: flex; gap: 12px; align-items: center; margin: 4px 0 12px; }
   #play { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--ink); color: var(--bg);
           font-size: 16px; cursor: pointer; flex: none; }
@@ -70,24 +68,14 @@
       <button data-v="hovedstad">Hovedstadsområdet</button>
     </div>
     <div class="seg" id="metric" role="group" aria-label="Visning">
-      <button data-v="yoy">Årlig ændring</button>
-      <button data-v="pris">Pris pr. m²</button>
-      <button data-v="index">Indeks (start = 100)</button>
-      <button data-v="aarsindk" aria-pressed="true" title="Prisen for 100 m² målt i årlig disponibel indkomst for par i kommunen">Pris/indkomst</button>
-      <button data-v="liggetid" title="Dage fra udbud til salg (fra 2004)">Liggetid</button>
+      <button data-v="aarsindk" aria-pressed="true" title="Prisen for 100 m² målt i gennemsnitlige danske årsindkomster (disponibel indkomst for par)">Pris/indkomst</button>
+      <button data-v="pris" title="Pris pr. m² i faste priser">Pris pr. m²</button>
+      <button data-v="index" title="Stigning i m²-prisen siden 1992 i faste priser">Stigning siden 1992</button>
     </div>
     <div class="seg" id="kategori" role="group" aria-label="Boligtype">
       <button data-v="samlet" aria-pressed="true" title="Huse og lejligheder vægtet efter antal handler. Priserne viser dagens blanding af huse og lejligheder.">Alle boliger</button>
       <button data-v="parcel">Parcel-/rækkehus</button>
       <button data-v="lejlighed">Ejerlejlighed</button>
-    </div>
-    <div class="seg" id="priser" role="group" aria-label="Prisniveau">
-      <button data-v="real" aria-pressed="true" id="real-label">Faste priser</button>
-      <button data-v="nom">Løbende priser</button>
-    </div>
-    <div class="seg" id="indkomst" role="group" aria-label="Indkomst i pris/indkomst" hidden>
-      <button data-v="lokal" aria-pressed="true" title="Disponibel indkomst for par i kommunen: hvor dyrt er det for dem, der bor der?">Indkomst i kommunen</button>
-      <button data-v="land" title="Disponibel indkomst for par i hele landet: hvor mange gennemsnitlige danske årsindkomster koster boligen?">Landsgennemsnit</button>
     </div>
   </div>
 
@@ -117,12 +105,11 @@
     Data: Boligmarkedsstatistikken (Finans Danmark), tabel <a href="https://rkr.statistikbank.dk/BM010">BM010</a> (kommuner)
     og <a href="https://rkr.statistikbank.dk/BM011">BM011</a> (postnumre), realiserede handelspriser; "Alle boliger" vægter
     huse og lejligheder med antal salg fra <a href="https://rkr.statistikbank.dk/BM020">BM020</a>/<a href="https://rkr.statistikbank.dk/BM021">BM021</a>.
-    Glidende gennemsnit over 4 kvartaler. Faste priser er deflateret med forbrugerprisindekset fra
-    <a href="https://www.statistikbanken.dk/PRIS01">Danmarks Statistik</a> (PRIS01 kædet med PRIS113).
+    Glidende gennemsnit over 4 kvartaler. Priser og stigninger er i faste priser (seneste kvartals kroner), deflateret med
+    forbrugerprisindekset fra <a href="https://www.statistikbanken.dk/PRIS01">Danmarks Statistik</a> (PRIS01 kædet med PRIS113).
     Tal før 2004 er opgjort med en anden metode.
-    Pris/indkomst: prisen for 100 m² delt med gennemsnitlig disponibel indkomst for par i kommunen eller i hele landet
-    (<a href="https://www.statistikbanken.dk/INDKF132">Danmarks Statistik, INDKF132</a>); postnumre bruger kommunens indkomst,
-    og efter 2024 antages uændret realindkomst. Liggetid: <a href="https://rkr.statistikbank.dk/BM030">BM030</a>/<a href="https://rkr.statistikbank.dk/BM031">BM031</a>, fra 2004.
+    Pris/indkomst: prisen for 100 m² delt med gennemsnitlig disponibel indkomst for par i hele landet
+    (<a href="https://www.statistikbanken.dk/INDKF132">Danmarks Statistik, INDKF132</a>); efter 2024 antages uændret realindkomst.
     Grå = ingen data eller for få handler (5 eller færre i kvartalet).
     <br>Indeholder data fra Styrelsen for Dataforsyning og Infrastruktur: Danmarks Administrative Geografiske
     Inddeling (DAGI), kommuner og postnumre, hentet september 2026 via <a href="https://dataforsyningen.dk">Dataforsyningen</a>.
@@ -134,11 +121,10 @@
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
 <script>
 const STEP_MS = 220;          // tid pr. kvartal under afspilning
-const YOY_LIMIT = 20;         // farveskalaen for årlig ændring går fra -20 % til +20 %
 const BORNHOLM = 400;
 const HELE_LANDET = 0;
 
-const state = { view: "land", metric: "aarsindk", kategori: "samlet", priser: "real", indkomst: "lokal", t: 0, playing: null };
+const state = { view: "land", metric: "aarsindk", kategori: "samlet", t: 0, playing: null };
 d3.formatDefaultLocale({ decimal: ",", thousands: ".", grouping: [3], currency: ["", " kr."] });
 const fmtKr = d3.format(",.0f");
 const fmtPct = v => (v > 0 ? "+" : "") + v.toFixed(1).replace(".", ",") + " %";
@@ -161,34 +147,25 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
   const round = (v, d = 0) => v == null ? null : Math.round(v * 10 ** d) / 10 ** d;
   const yoyOf = s => s.map((v, t) => t >= 4 && v != null && s[t - 4] != null ? round((v / s[t - 4] - 1) * 100, 1) : null);
   const indexOf = s => { const b = s.find(v => v != null); return s.map(v => v == null ? null : round(v / b * 100, 1)); };
-  const income = Object.fromEntries(Object.entries(landData.indkomst).map(([k, e]) => [k, decode(e, 0.01)]));
-  const aarsindkOf = (pris, inc) => pris.map((p, t) => p == null || !inc?.[t] ? null : round(p * 100 / inc[t], 1));
+  // Pris/indkomst bruger landsgennemsnittet for par; nominel pris mod nominel indkomst.
+  const income = decode(landData.indkomst[HELE_LANDET], 0.01);
+  const aarsindkOf = pris => pris.map((p, t) => p == null || !income[t] ? null : round(p * 100 / income[t], 1));
   // "Dagens boligmix": ankerprisen i kvartal ta regnes tilbage med indekset.
   const fromAnchor = (index, ta, price) => index.map(v => v == null || ta == null ? null : Math.round(price * v / index[ta]));
 
-  // incomeKode: områdekode → kommunen, hvis indkomst bruges i pris/indkomst.
-  function prepare(areas, incomeKode) {
-    for (const [id, a] of Object.entries(areas)) {
-      const inc = income[incomeKode(+id)];
+  // Alt vises i faste priser; de nominelle serier bruges kun til pris/indkomst.
+  // (Datafilerne har også liggetid og kommunernes indkomst, som siden ikke bruger.)
+  function prepare(areas) {
+    for (const a of Object.values(areas)) {
       for (const kat of ["parcel", "lejlighed"]) {
-        const pris = decode(a[kat]?.pris), prisReal = decode(a[kat]?.pris_real);
-        a[kat] = {
-          pris, pris_real: prisReal,
-          yoy: yoyOf(pris), yoy_real: yoyOf(prisReal),
-          index: indexOf(pris), index_real: indexOf(prisReal),
-          aarsindk: aarsindkOf(pris, inc), aarsindk_land: aarsindkOf(pris, income[HELE_LANDET]),
-          liggetid: decode(a[kat]?.liggetid),
-        };
+        const prisReal = decode(a[kat]?.pris_real);
+        a[kat] = { pris: prisReal, index: indexOf(prisReal), yoy: yoyOf(prisReal), aarsindk: aarsindkOf(decode(a[kat]?.pris)) };
       }
       const index = decode(a.samlet?.index, 10), indexReal = decode(a.samlet?.index_real, 10);
       const [ta, anker, ankerReal] = a.samlet?.anker ?? [];
-      const pris = fromAnchor(index, ta, anker);
       a.samlet = {
-        index, index_real: indexReal,
-        pris, pris_real: fromAnchor(indexReal, ta, ankerReal),
-        aarsindk: aarsindkOf(pris, inc), aarsindk_land: aarsindkOf(pris, income[HELE_LANDET]),
-        yoy: yoyOf(index), yoy_real: yoyOf(indexReal),
-        liggetid: decode(a.samlet?.liggetid),
+        pris: fromAnchor(indexReal, ta, ankerReal), index: indexReal, yoy: yoyOf(indexReal),
+        aarsindk: aarsindkOf(fromAnchor(index, ta, anker)),
       };
     }
     return areas;
@@ -199,7 +176,7 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
   let hsTopo = null;  // hentes først, når hovedstadsområdet vises
   const views = {
     land: {
-      areas: prepare(landData.omraader, id => id),
+      areas: prepare(landData.omraader),
       features: withId(topojson.feature(landTopo, landTopo.objects.kommuner).features, "kode"),
       selected: 101,
       sub: "Salgspriser pr. m² for 98 kommuner, 1992 til i dag. Tryk play og se, hvor priserne stiger først.",
@@ -214,28 +191,20 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
   };
   const V = () => views[state.view];
 
-  // Faste priser ligger under nøglerne pris_real, yoy_real og index_real (se prepare()).
-  // Pris/indkomst og liggetid er de samme i faste og løbende priser og har ingen _real-variant.
-  const PRICE_INVARIANT = new Set(["aarsindk", "liggetid"]);
-  // Pris/indkomst med landsgennemsnittets indkomst ligger under aarsindk_land.
-  const key = metric =>
-    metric === "aarsindk" && state.indkomst === "land" ? "aarsindk_land"
-    : state.priser === "real" && !PRICE_INVARIANT.has(metric) ? metric + "_real" : metric;
-  const series = (id, metric = state.metric, areas = V().areas) => areas[id]?.[state.kategori]?.[key(metric)] ?? [];
+  const series = (id, metric = state.metric, areas = V().areas) => areas[id]?.[state.kategori]?.[metric] ?? [];
   const national = (metric = state.metric) => series(HELE_LANDET, metric, views.land.areas);
   const value = id => series(id)[state.t] ?? null;
-  const unit = () => state.priser === "real" ? ` kr./m² (${basis}-priser)` : " kr./m²";
   const fmtIdx = d3.format(",.1f");
+  // Stigning vises som procent; internt er det et indeks med start = 100.
+  const fmtRise = v => (v > 100 ? "+" : "") + fmtKr(v - 100) + " %";
+  const startOf = id => Q[series(id, "index").findIndex(v => v != null)]?.replace("K", " K") ?? "";
   const METRICS = {
-    yoy:      { label: "Årlig ændring", fmt: fmtPct, tick: v => (v > 0 ? "+" : "") + v + " %" },
-    pris:     { label: "Pris", fmt: v => fmtKr(v) + " kr./m²", tick: v => fmtKr(v) + " kr." },
-    index:    { label: "Indeks", fmt: fmtIdx, tick: d3.format(",.0f") },
-    aarsindk: { label: "100 m² koster", fmt: v => fmtIdx(v) + " årsindkomster", tick: v => d3.format(",~r")(v) + " år" },
-    liggetid: { label: "Liggetid", fmt: v => fmtKr(v) + " dage", tick: v => fmtKr(v) + " dage" },
+    aarsindk: { label: () => "100 m² koster", fmt: v => fmtIdx(v) + " årsindkomster", tick: v => d3.format(",~r")(v) + " år" },
+    pris:     { label: () => "Pris", fmt: v => fmtKr(v) + " kr./m²", tick: v => fmtKr(v) + " kr." },
+    index:    { label: id => `Stigning siden ${startOf(id)}`, fmt: fmtRise, tick: fmtRise },
   };
   const headline = id => { const p = series(id, "pris")[state.t]; return p == null ? null : `${fmtKr(p)} kr./m²`; };
   const MIX_NOTE = "For alle boliger: dagens blanding af huse og lejligheder, regnet tilbage med det samlede indeks.";
-  d3.select("#real-label").text(`Faste priser (${basis})`);
 
   // ---------- Farveskalaer ----------
   function extent(metric) {
@@ -243,10 +212,6 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
     return [d3.quantile(vals, 0.01), d3.quantile(vals, 0.99)];
   }
   function makeScale() {
-    if (state.metric === "yoy")
-      return d3.scaleDiverging([-YOY_LIMIT, 0, YOY_LIMIT], t => d3.interpolateRdBu(1 - t)).clamp(true);
-    if (state.metric === "liggetid")
-      return d3.scaleSequentialLog(extent(state.metric), t => d3.interpolateYlOrRd(1 - t)).clamp(true);
     return d3.scaleSequentialLog(extent(state.metric), d3.interpolateYlOrRd).clamp(true);
   }
   let color = makeScale();
@@ -303,9 +268,9 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
   function showTooltip(e, f) {
     const m = METRICS[state.metric], v = value(f.id), head = headline(f.id);
     const yoy = series(f.id, "yoy")[state.t];
-    const lines = [v == null ? "Ingen data" : `${m.label}: ${m.fmt(v)}`];
-    if (state.metric !== "pris" && head != null) lines.push(head.replace(" kr./m²", unit()));
-    if (state.metric !== "yoy" && yoy != null) lines.push(fmtPct(yoy) + " på et år");
+    const lines = [v == null ? "Ingen data" : `${m.label(f.id)}: ${m.fmt(v)}`];
+    if (state.metric !== "pris" && head != null) lines.push(`${head} (${basis}-kroner)`);
+    if (yoy != null) lines.push(fmtPct(yoy) + " på et år");
     tooltip.style("display", "block")
       .style("left", Math.min(e.clientX + 14, innerWidth - 220) + "px").style("top", e.clientY + 14 + "px")
       .html(`<b>${V().areas[f.id]?.navn ?? f.properties.navn}</b>${Q[state.t]}<br>` + lines.join("<br>") +
@@ -317,15 +282,13 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
     const lg = d3.select("#legend").html("");
     const x0 = 20, x1 = 520, id = "grad";
     const grad = lg.append("defs").append("linearGradient").attr("id", id);
-    const [d0, d1] = state.metric === "yoy" ? [-YOY_LIMIT, YOY_LIMIT] : color.domain();
-    const xs = state.metric === "yoy" ? d3.scaleLinear([d0, d1], [x0, x1]) : d3.scaleLog([d0, d1], [x0, x1]);
+    const xs = d3.scaleLog(color.domain(), [x0, x1]);
     d3.range(0, 1.001, 0.05).forEach(p => grad.append("stop").attr("offset", p).attr("stop-color", color(xs.invert(x0 + p * (x1 - x0)))));
     lg.append("rect").attr("x", x0).attr("y", 6).attr("width", x1 - x0).attr("height", 12).attr("rx", 3).attr("fill", `url(#${id})`);
     const fmt = METRICS[state.metric].tick;
     // Log-skalaer giver tætte ticks i den ene ende; behold kun dem med mindst 70 px imellem.
     let lastX = -Infinity;
-    const ticks = state.metric === "yoy" ? [-20, -10, 0, 10, 20]
-      : xs.ticks(8).filter(v => xs(v) - lastX >= 70 && (lastX = xs(v), true));
+    const ticks = xs.ticks(8).filter(v => xs(v) - lastX >= 70 && (lastX = xs(v), true));
     lg.append("g").attr("transform", "translate(0,20)").call(d3.axisBottom(xs).tickValues(ticks).tickFormat(fmt).tickSize(4));
     lg.append("rect").attr("x", 560).attr("y", 6).attr("width", 16).attr("height", 12).attr("rx", 3).attr("fill", css("--missing"));
     lg.append("text").attr("x", 582).attr("y", 16).text("ingen data / få handler");
@@ -339,9 +302,12 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
     chart.html("");
     const a = series(V().selected), n = national();
     const vals = [...a, ...n].filter(v => v != null);
-    const cy = (state.metric === "yoy" ? d3.scaleLinear().domain(d3.extent([...vals, 0])) : d3.scaleLog().domain(d3.extent(vals))).nice().range([CH - cm.b, cm.t]);
-    const yfmt = state.metric === "yoy" ? v => v + " %" : d3.format("~s");
-    chart.append("g").attr("transform", `translate(${cm.l},0)`).call(d3.axisLeft(cy).ticks(5, state.metric === "yoy" ? undefined : "~s").tickFormat(state.metric === "yoy" ? yfmt : null).tickSize(-(CW - cm.l - cm.r)));
+    // Stigning vises på lineær akse i procent; pris og pris/indkomst på log-akse.
+    const rise = state.metric === "index";
+    const cy = (rise ? d3.scaleLinear() : d3.scaleLog()).domain(d3.extent(vals)).nice().range([CH - cm.b, cm.t]);
+    const axis = d3.axisLeft(cy).tickSize(-(CW - cm.l - cm.r));
+    if (rise) axis.ticks(5).tickFormat(fmtRise); else axis.ticks(5, "~s");
+    chart.append("g").attr("transform", `translate(${cm.l},0)`).call(axis);
     const years = Q.map((q, i) => [q, i]).filter(([q]) => q.endsWith("K1") && +q.slice(0, 4) % 5 === 0);
     chart.append("g").attr("transform", `translate(0,${CH - cm.b})`).call(d3.axisBottom(cx).tickValues(years.map(d => d[1])).tickFormat(i => Q[i].slice(0, 4)).tickSize(0).tickPadding(6));
     const line = d3.line().defined(v => v != null).x((v, i) => cx(i)).y(v => cy(v));
@@ -365,13 +331,13 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
     d3.select("#key-sel").text(a.navn);
     d3.select("#sel-value").text(v == null ? "–" : METRICS[state.metric].fmt(v));
     d3.select("#sel-unit").text([
-      state.metric === "aarsindk" ? `Pris for 100 m² ÷ årlig disponibel indkomst for par ${state.indkomst === "land" ? "i hele landet" : "i kommunen"}.`
-      : state.metric === "liggetid" ? "Dage fra udbud til salg, gennemsnit over 4 kvartaler."
-      : state.priser === "real" ? `Faste priser, ${basis}-kroner.` : "Løbende priser.",
+      state.metric === "aarsindk" ? "Pris for 100 m² ÷ gennemsnitlig årlig disponibel indkomst for par i hele landet."
+      : state.metric === "index" ? `Stigning i m²-prisen siden ${startOf(sel)}, i faste priser.`
+      : `Faste priser, ${basis}-kroner.`,
       state.kategori === "samlet" && ["pris", "aarsindk"].includes(state.metric) ? MIX_NOTE : "",
     ].join(" "));
-    d3.select("#sel-meta").text(head == null ? `${Q[state.t]}: for få handler` : `${Q[state.t]} · ${head} · landet: ${fmtPct(national("yoy")[state.t] ?? 0)}`);
-    const chartKey = [state.view, state.metric, state.kategori, state.priser, sel].join("|");
+    d3.select("#sel-meta").text(head == null ? `${Q[state.t]}: for få handler` : `${Q[state.t]} · ${head} · landet ${fmtPct(national("yoy")[state.t] ?? 0)} på et år`);
+    const chartKey = [state.view, state.metric, state.kategori, sel].join("|");
     if (chart.select("#cursor").empty() || chart.attr("data-key") !== chartKey) {
       drawChart(); chart.attr("data-key", chartKey);
     }
@@ -384,9 +350,8 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
     const [hsData, topo] = await Promise.all([d3.json("data/priser_hovedstaden.json"), d3.json("data/hovedstaden.topo.json")]);
     hsTopo = topo;
     const features = withId(topojson.feature(topo, topo.objects.postnumre).features, "pnr");
-    const kommuneFor = new Map(features.map(f => [f.id, f.properties.kode]));
     views.hovedstad.features = features;
-    views.hovedstad.areas = prepare(hsData.omraader, pnr => kommuneFor.get(pnr));
+    views.hovedstad.areas = prepare(hsData.omraader);
   }
 
   async function setView(view) {
@@ -406,17 +371,10 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
       d3.selectAll(`#${id} button`).attr("aria-pressed", "false");
       d3.select(this).attr("aria-pressed", "true");
       state[key] = this.dataset.v;
-      syncControls(); rebuild();
+      rebuild();
     });
   }
-  // Faste/løbende priser gør ingen forskel for pris/indkomst og liggetid.
-  function syncControls() {
-    d3.selectAll("#priser button").property("disabled", PRICE_INVARIANT.has(state.metric));
-    // Ved pris/indkomst er faste/løbende priser uden betydning; valget af indkomst vises i stedet.
-    d3.select("#priser").attr("hidden", state.metric === "aarsindk" ? "" : null);
-    d3.select("#indkomst").attr("hidden", state.metric === "aarsindk" ? null : "");
-  }
-  seg("metric", "metric"); seg("kategori", "kategori"); seg("priser", "priser"); seg("indkomst", "indkomst");
+  seg("metric", "metric"); seg("kategori", "kategori");
   d3.selectAll("#view button").on("click", function () { setView(this.dataset.v); });
   slider.on("input", function () { stop(); state.t = +this.value; render(0); });
 
@@ -439,7 +397,6 @@ Promise.all([d3.json("data/priser.json"), d3.json("data/kommuner.topo.json")]).t
   // Åbn i seneste kvartal (situationen i dag); play starter forfra fra første kvartal med data.
   const FIRST_DATA = national("index").findIndex(v => v != null);
   state.t = Q.length - 1;
-  syncControls();
   setView("land");
 });
 </script>

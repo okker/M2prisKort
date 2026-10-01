@@ -54,20 +54,18 @@ glattede pris i browseren giver op til ~5 procentpoint forkert årlig ændring i
   områdets fordeling i 2004–2007. Et gennemsnit af m²-priserne ville ændre sig, bare fordi mixet af huse og
   lejligheder ændrer sig, så m²-pris og pris/indkomst for alle boliger viser i stedet **dagens boligmix**:
   typernes m²-pris vægtet med antal solgte i seneste kvartal, regnet tilbage i tiden med det samlede indeks.
-- **Pris/indkomst:** prisen for en bolig på 100 m² (glattet m²-pris × 100) delt med gennemsnitlig disponibel
-  indkomst for par i kommunen. Par frem for alle familier, fordi Københavns mange enlige ellers trækker indkomsten
-  ned (2024: 418.000 mod 730.000 kr.). Årstal interpoleres til kvartaler; efter sidste indkomstår (2024) antages
-  uændret realindkomst. Postnumre bruger kommunens indkomst, så inden for én kommune viser målet kun prisforskelle.
-  Knappen "Landsgennemsnit" dividerer i stedet med landsgennemsnittet for par: hvor mange gennemsnitlige danske
-  årsindkomster boligen koster (et priskort i en anden enhed).
-- **Liggetid:** dage fra udbud til salg (BM030/BM031), fra 2004, glattet over 4 kvartaler. "Alle boliger" er
-  gennemsnittet over alle solgte boliger (typerne vægtet med antal salg).
+- **Visninger:** Pris/indkomst (standard), Pris pr. m² og Stigning siden 1992 (indeks med start = 100, vist i
+  procent). Årlig ændring står kun i hover-boksen.
+- **Pris/indkomst:** prisen for en bolig på 100 m² (glattet m²-pris × 100) delt med landsgennemsnittets disponible
+  indkomst for par, dvs. hvor mange gennemsnitlige danske årsindkomster boligen koster. Årstal interpoleres til
+  kvartaler; efter sidste indkomstår (2024) antages uændret realindkomst.
+- **Ikke vist:** datafilerne indeholder også liggetider (BM030/BM031) og hver kommunes indkomst, som tidligere
+  versioner af siden brugte (se git-historikken). De kan fjernes fra `build_data.py`, hvis filerne skal være mindre.
 - **Glatning:** Glidende gennemsnit over 4 kvartaler (kræver 3 af 4). Den årlige ændring halter derfor ca. et halvt år.
-- **Faste priser** (standard) er deflateret med forbrugerprisindekset og udtrykt i kroner i seneste kvartal
+- **Faste priser:** alle priser og stigninger vises deflateret med forbrugerprisindekset i kroner i seneste kvartal
   med prisdata. Danmarks Statistik lagde FPI om i 2026: den nye PRIS01 starter 2000M12, så 1992–2000 kommer
   fra den lukkede PRIS113, skaleret til PRIS01's niveau (forholdet er konstant i overlappet 2000–2025).
-  Er FPI for det seneste kvartal ikke udkommet endnu, genbruges seneste kendte kvartal. Knappen
-  "Løbende priser" viser de nominelle tal.
+  Er FPI for det seneste kvartal ikke udkommet endnu, genbruges seneste kendte kvartal.
 - **Hovedstadsområdet** følger planlovens/Fingerplanens afgrænsning: Region Hovedstaden uden Bornholm plus
   Greve, Køge, Lejre, Roskilde, Solrød og Stevns (34 kommuner, 107 postnumre). Listen står i `scripts/build_geo.sh`.
   Et postnummer er med, hvis det overlapper mest med en af de 34 kommuner.
